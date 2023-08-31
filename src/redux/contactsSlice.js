@@ -1,34 +1,59 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
+import { addContact, deleteContacts, fetchContacts } from './operation';
+
 
 
 
 const initialState = {
-  contacts: []
+   items: [],
+    isLoading: false,
+    error: null,
 };
 
-const persistConfig = {
-  key: 'contacts',
-  storage
+const handlePending = state => {
+  state.isLoading = true;
+  state.error = null;
+};
+
+const handleRejected = (state, action) => {
+  state.isLoading = false;
+  state.error = action.payload;
 };
 
 const contactsSlice = createSlice({
   name: 'contacts',
   initialState,
-  reducers: {
-    addContact: (state, action) => {
-      state.contacts.push(action.payload);
+  extraReducers: {
+    [fetchContacts.pending]:handlePending,
+    [fetchContacts.fulfilled](state, action) {
+      state.isLoading = false;
+      state.error = null;
+      state.items = action.payload;
     },
-    deleteContact: (state, action) => ({
-      ...state,
-      contacts: state.contacts.filter(contact => contact.id !== action.payload)
-    })
-  }
+    [fetchContacts.rejected]: handleRejected,
+    
+    [addContact.pending]: handlePending,
+    [addContact.fulfilled](state, action) {
+      state.isLoading = false;
+      state.error = null;
+      state.items.push(action.payload);
+    },
+    [addContact.rejected]: handleRejected,
+
+    [deleteContacts.pending]:handlePending,
+    [deleteContacts.fulfilled](state, action) {
+      state.isLoading = false;
+      state.error = null;
+      const index = state.items.findIndex(
+        contact => contact.id === action.payload.id
+      );
+      state.items.splice(index, 1);
+    },
+  },
 });
 
-export const { addContact, deleteContact } = contactsSlice.actions;
+export const selectContacts = state => state.contacts;
+export const selectIsLoading = state => state.contacts.isLoading;
+export const selectError = state => state.contacts.error;
 
-export default persistReducer(persistConfig, contactsSlice.reducer);
-
-export const selectContacts = state => state.contacts.contacts;
+export default contactsSlice.reducer;
